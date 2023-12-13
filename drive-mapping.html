@@ -1,0 +1,387 @@
+<!DOCTYPE html><html dir="ltr" lang="en-US"><head>
+  <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no" />
+  <title>9r3i\drive::mapping</title>
+  <script src="header-1.5.1.min.js" type="text/javascript"></script>
+<style type="text/css">
+*{margin:0px;padding:0px;color:#333;font-family:consolas,monospace;font-size:11px;}
+a{text-decoration:none;color:#37b;}a:hover{color:#7b3;}
+body{
+  margin:0px;
+  padding:0px;
+  background-color:#eed;
+  overflow-x:hidden;
+  -webkit-user-select:none;
+  -moz-user-select:none;
+  cursor:default;
+}
+#index{
+  padding:0px;
+  margin:55px 10px 20px;
+  width:calc(100% - 20px);
+  border-top:1px solid #bbb;
+  border-left:1px solid #bbb;
+  border-right:1px solid #bbb;
+  background-color:#fff;
+}
+#index-name{
+  padding:10px;
+  border-bottom:1px solid #bbb;
+  font-weight:bold;
+  font-size:13px;
+  position:fixed;
+  background-color:#bdf;
+  overflow-y:hidden;
+  overflow-x:auto;
+  white-space:pre;
+  width:calc(100% - 20px);
+  top:0px;
+  left:0px;
+  right:0px;
+}
+#index-name a{font-size:13px;font-weight:bold;}
+#index-footer:before{content:"9r3i\\drive::mapping (c) 2019";}
+#index-footer{
+  padding:10px;
+  margin-top:10px;
+  border-top:1px solid #bbb;
+  text-align:center;
+  background-color:#bdf;
+}
+.dt-parse{
+  display:inline-block;
+  padding:10px 0px;
+  white-space:pre;
+  cursor:default;
+  transition:all 0.5s ease 0s;
+  width:0px;
+}
+.dt-row{border-bottom:1px solid #bbb;overflow:hidden;}
+.row{padding:10px;border-bottom:1px solid #ccc;white-space:pre;overflow:hidden;}
+.row:hover,.dt-row:hover{background-color:#ddc;}
+.dt-row:hover > .dt-parse{font-weight:bold;}
+#color{
+  padding:0px;
+  margin:0px 10px 20px;
+  width:calc(100% - 20px);
+  border:1px solid #bbb;
+  background-color:#fff;
+}
+.color-each{display:inline-block;width:1px;height:16px;}
+</style>
+</head><body onload="dmInit()">
+<div id="index-name"></div>
+<div id="index"></div>
+<div id="color"></div>
+<div id="index-footer" title="9r3i\drive::mapping (c) 2019"></div>
+<script type="text/javascript">
+var W,D,DATA={},DATA_INDEX=null,CDIR=null;
+
+/* initialize */
+function dmInit(){
+  W.onpopstate=function(e){
+    return dmLoadPage();
+  };
+  return dmLoadPage();
+}
+
+/* load index  */
+function dmLoadIndex(){
+  if(Array.isArray(DATA_INDEX)){
+    var r=DATA_INDEX;
+    var iname=gebi('index-name');
+    if(iname){iname.innerText='Data Index';}
+    var index=gebi('index');
+    index.innerHTML='';
+    for(var i=0;i<r.length;i++){
+      var name=r[i].replace(/\.json$/ig,'').replace(/^scanned-+/,'');
+      var div=ce('a');
+      var num=i+1;
+      num=num<10?'  '+num:num<100?' '+num:num;
+      div.href='javascript:dmLocationSet(\''+r[i]+'\');';
+      div.innerHTML='<div class="row">'+num+'. '+name+'</div>';
+      index.appendChild(div);
+    }return true;
+  }return dmLoadDataJSON(dmLoadIndex);
+}
+
+/* load data json */
+function dmLoadDataJSON(cb){
+  W.post('json.php',function(r){
+    DATA_INDEX=Array.isArray(r)?r:[];
+    dmLoadDataJSONEach();
+    if(typeof cb==='function'){
+      return cb();
+    }
+  });
+}
+
+/* load data json each */
+function dmLoadDataJSONEach(n){
+  n=n?parseInt(n):0;
+  if(!DATA_INDEX||!DATA_INDEX[n]){return false;}
+  if(DATA[DATA_INDEX[n]]){
+    n++;
+    return dmLoadDataJSONEach(n);
+  }
+  W.post(DATA_INDEX[n],function(r){
+    DATA[DATA_INDEX[n]]=r;
+    n++;
+    return dmLoadDataJSONEach(n);
+  });
+}
+
+/* load page */
+function dmLoadPage(){
+  var c=dmDataChain();
+  if(c.length==0||c[0]==''){
+    return dmLoadIndex();
+  }
+  if(!DATA[c[0]]){
+    W.post(c[0],function(r){
+      DATA[c[0]]=r;
+      return dmLoadPage();
+    },null,null,null,null,null,function(e){
+      return dmLocationSet();
+    });return;
+  }
+  var r=null,t=null;
+  CDIR='';
+  for(var i=0;i<c.length;i++){
+    t=t?t.data[c[i]]:DATA[c[i]];
+    CDIR+=t.name+(i==0&&t.name.match(/^[A-Z]$/)?':':'')+'/';
+  }r=t;
+  //console.log(r);
+  if(r.data.length>512){
+    var cm=confirm('Data length is '+r.data.length
+      +'\r\nDo you want to load anyway?');
+    if(!cm){
+      return dmLocationRemove();
+    }
+  }return parseMap(r);
+}
+
+/* get data chain */
+function dmDataChain(){
+  var hash=W.location.hash.substr(1).split('/');
+  return Array.isArray(hash)?hash:[];
+}
+
+/* location set */
+function dmLocationSet(s){
+  var hash=typeof s==='string'?s:'';
+  W.location.assign('#'+hash);
+}
+
+/* location add */
+function dmLocationAdd(s){
+  var hash=W.location.hash.substr(1);
+  hash+=typeof s==='number'?'/'+s:'';
+  W.location.assign('#'+hash);
+}
+
+/* location remove */
+function dmLocationRemove(){
+  var hash=W.location.hash.substr(1);
+  hash=hash.replace(/\/?[^\/]+$/ig,'');
+  W.location.assign('#'+hash);
+}
+
+/* location remove */
+function dmLocationNavigation(){
+  if(!CDIR){return '';}
+  var s=CDIR.split('/').slice(0,-1);
+  var c=dmDataChain();
+  if(s.length!==c.length){return CDIR;}
+  var html=[],store=[];
+  html.push('<a href="#">Home</a>');
+  for(var i=0;i<c.length;i++){
+    store.push(c[i]);
+    var name=s[i].length>20?s[i].substr(0,19)+'~':s[i];
+    html.push('<a href="#'+store.join('/')+'" title="'+s[i]+'">'+name+'</a>');
+  }html.push('');
+  return html.join('/');
+}
+
+/* parse map */
+function parseMap(r){
+  var iname=gebi('index-name');
+  if(iname){iname.innerHTML=dmLocationNavigation();}
+  var ind=gebi('index');
+  var dt=[],uptext=' [UP] '
+    +readableDigit(Math.ceil(r.size/1024))+' KB -- '+r.data.length+' item(s)';
+  dt.push('<div class="dt-row" onclick="dmLocationRemove()">'
+    +'<div class="dt-parse" title="'+uptext+'">'+uptext+'</div></div>');
+  //console.log(r);
+  var hasFile=false;
+  for(var i=0;i<r.data.length;i++){
+    var wp=r.data[i].size/r.size*100;
+    var color1=Math.floor(Math.random()*255);
+    var color2=Math.floor(Math.random()*255);
+    var color3=Math.floor(Math.random()*255);
+    color1+=color1<100?100:0;
+    color2+=color2<100?100:0;
+    color3+=color3<100?100:0;
+    var color='rgb('+color1+','+color2+','+color3+')';
+    var color=colorize(i)[1];
+    //var color=colorizePercent(wp);
+    var click=r.data[i].data?'onclick="dmLocationAdd('+i+')"':'';
+    var before=r.data[i].data?' [D] ':' [F] ';
+    var after=r.data[i].data?'-- '+r.data[i].data.length+' item(s)':'';
+    if(r.data[i].data&&hasFile){
+      hasFile=false;
+    }
+    if(!r.data[i].data&&!hasFile){
+      hasFile=true;
+      dt.push('<div class="dt-row" style="border-bottom:10px solid #999;"></div>');
+    }
+    var dtext=before+r.data[i].name+' ('+wp.toFixed(2)+'%) '
+      +readableDigit(Math.ceil(r.data[i].size/1024))+' KB '+after;
+    dt.push('<div class="dt-row" '+click+' title="'+dtext+'">'
+      +'<div class="dt-parse" id="dt-parse-'+i+'" data-width="'+wp+'" '
+      +'style="background-color:'+color+';">'+dtext+'</div></div>');
+  }ind.innerHTML=dt.join('');
+  setTimeout(function(){
+    for(var i=0;i<r.data.length;i++){
+      var dtp=gebi('dt-parse-'+i);
+      if(dtp&&typeof dtp.dataset.width==='string'){
+        dtp.style.width=dtp.dataset.width+'%';
+      }
+    }
+  },30);
+}
+
+/* readable digit
+ * ~ change numeric to readable digit
+ * @parameter:
+ *   d = integer or string of numeric
+ * @return: string of readable digit
+ */
+function readableDigit(d){
+  d=d.toString().match(/^\-?\d+$/g)?d.toString():'0';
+  var m=d.toString().match(/^\-/g)?'-':'';
+  d=d.replace(/^-/g,'');
+  var i=d.length,r='',c=0;
+  while(i--){
+    c++;
+    if(c>=3){c=0;r=','+d[i]+r;}
+    else{r=d[i]+r;}
+  }return m+r.replace(/^[^0-9]+/g,'');
+}
+
+/* colorize */
+function colorize(n){
+  var colors=[["Blue","#7bf"],["Green","#bf7"],["Red","#f77"],["Orange","#fb7"],["Torquise","#7fb"],["Purple","#b7f"],["Yellow","#ff7"],["Pink","#f7b"]];
+  n=n?parseInt(n):0;
+  return colors[n%colors.length];
+}
+
+/* colorize percent */
+function colorizePercent(n){
+  n=typeof n==='number'?parseFloat(n):0;
+  var base=[],bar=[];
+  for(var i=0;i<256;i++){
+    var t=i.toString(16).toUpperCase();
+    base.push(t.length<2?'0'+t:t);
+  }
+  // --- bar --- //--> 0000FF - 00FFFF - 00FF00 - FFFF00 - FF0000
+  for(var i=0;i<base.length;i++){
+    bar.push('#00'+base[i]+'FF');
+  }i=base.length;
+  while(i--){
+    bar.push('#00FF'+base[i]);
+  }
+  for(var i=0;i<base.length;i++){
+    bar.push('#'+base[i]+'FF00');
+  }i=base.length;
+  while(i--){
+    bar.push('#FF'+base[i]+'00');
+  }
+  var g=Math.ceil(bar.length*n/100);
+  return bar[g]?bar[g]:bar[0];
+}
+
+/* colorize bar */
+function colorizeBar(id,n,g){
+  n=typeof n==='number'&&n<=100?parseFloat(n):100;
+  g=typeof g==='number'?parseInt(g):0;
+  var b=colorizeBase();
+  var l=Math.ceil(b.length*n/100);
+  var h=gebi(id);
+  if(g>=l||!h){return;}
+  if(g==0){h.innerHTML='';}
+  var d=ce('div');
+  d.classList.add('color-each');
+  d.style.backgroundColor=b[g];
+  h.appendChild(d);
+  return setTimeout(function(){
+    g+=3;
+    return colorizeBar(id,n,g);
+  },1);
+}
+
+/* colorize bar test */
+//colorizeBarTest();
+function colorizeBarTest(n){
+  n=typeof n==='number'?parseFloat(n):100;
+  var bar=colorizeBase();
+  var ic=gebi('color'),html='';
+  ic.innerHTML='';
+  var g=Math.ceil(bar.length*n/100);
+  for(var i=0;i<bar.length;i++){
+    if(i%2){continue;}
+    html+='<div class="color-each" style="background-color:'+bar[i]+'"></div>';
+    if(i>=g){break;}
+  }
+  ic.innerHTML+='<div>'+html+'</div>';
+}
+
+/* get colorize base */
+function colorizeBase(){
+  if(window.COLORIZE_BASE){
+    return window.COLORIZE_BASE;
+  }
+  var base=[],bar=[];
+  for(var i=0;i<256;i++){
+    var t=i.toString(16).toUpperCase();
+    base.push(t.length<2?'0'+t:t);
+  }
+  // --- bar --- //--> 0000FF - 00FFFF - 00FF00 - FFFF00 - FF0000
+  for(var i=0;i<base.length;i++){
+    bar.push('#00'+base[i]+'FF');
+  }i=base.length;
+  while(i--){
+    bar.push('#00FF'+base[i]);
+  }
+  for(var i=0;i<base.length;i++){
+    bar.push('#'+base[i]+'FF00');
+  }i=base.length;
+  while(i--){
+    bar.push('#FF'+base[i]+'00');
+  }
+  //console.log(bar);
+  window.COLORIZE_BASE=bar;
+  return bar;
+}
+
+
+
+/*
+0000FF - 00FFFF - 00FF00 - FFFF00 - FF0000
+
+
+color:
+FF0000 --> FFFF00 --> 00FF00 --> 00FFFF --> 0000FF --> FF00FF --> FF0000
+  |          |          |
+  v          v          v
+FF9999     FFFF99     99FF99
+  |          |
+  v          v
+FFFFFF     FFFFFF
+
+
+*/
+
+</script>
+</body></html>
